@@ -124,6 +124,187 @@ You can still use Ollama by running it in **OpenAI-compatible API mode** and map
 
 ---
 
+## 2A) Detailed end-to-end guide: Ollama Gemma for text generation in this app
+
+### English (Full Step-by-Step)
+
+This section is a deeper, practical walkthrough specifically for **text generation** using Ollama + Gemma with this repository.
+
+### Step 0 — Understand the current app routing
+- This app currently supports LLM providers: `Gemini` and `GPT`.
+- To use Ollama, you must route through the existing `GPT` path (OpenAI-compatible endpoint).
+- In short: **App -> OpenAI SDK calls -> Ollama local endpoint**.
+
+### Step 1 — Install Ollama and confirm it works
+1. Install from: https://ollama.com/download
+2. Check version:
+   ```bash
+   ollama --version
+   ```
+3. Start service (if not auto-started):
+   ```bash
+   ollama serve
+   ```
+4. In another terminal, health-check:
+   ```bash
+   curl http://127.0.0.1:11434/api/tags
+   ```
+   You should get JSON back (even if model list is empty).
+
+### Step 2 — Pull and test Gemma model directly in Ollama
+1. Pull Gemma:
+   ```bash
+   ollama pull gemma4:latest
+   ```
+   If unavailable on your setup, list available local models after pull attempts:
+   ```bash
+   ollama list
+   ```
+2. Quick local test:
+   ```bash
+   ollama run gemma4:latest "Reply with: Ollama Gemma is ready."
+   ```
+   If this works, local inference is ready.
+
+### Step 3 — Create model alias expected by this project
+The app sends model names like `gpt-4o` in GPT mode.  
+Create a local alias so Ollama can resolve that name:
+
+```bash
+ollama cp gemma4:latest gpt-4o
+```
+
+Verify alias exists:
+```bash
+ollama list
+```
+You should see `gpt-4o` in the model list.
+
+### Step 4 — Point OpenAI-compatible client calls to Ollama
+Set this in the same shell/session where you launch the app:
+
+- macOS / Linux:
+  ```bash
+  export OPENAI_BASE_URL=http://127.0.0.1:11434/v1
+  ```
+- Windows PowerShell:
+  ```powershell
+  $env:OPENAI_BASE_URL="http://127.0.0.1:11434/v1"
+  ```
+- Windows CMD:
+  ```cmd
+  set OPENAI_BASE_URL=http://127.0.0.1:11434/v1
+  ```
+
+Optional persistence:
+- Linux/macOS: add the `export` line to `~/.bashrc` or `~/.zshrc`
+- Windows PowerShell (new sessions):
+  ```powershell
+  setx OPENAI_BASE_URL "http://127.0.0.1:11434/v1"
+  ```
+
+### Step 5 — Configure repository API key field
+Edit:
+- `AIVT_Config.py`
+
+Set:
+```python
+openai_api_key = "ollama"
+```
+
+For local Ollama, this is usually a placeholder token.
+
+### Step 6 — Set app to GPT mode (required)
+In GUI or `GUI_control_panel/GUI_config.ini`:
+
+```ini
+[LLM]
+using = GPT
+
+[LLM_GPT]
+model = gpt-4o
+```
+
+Notes:
+- `model = gpt-4o` should match your alias created in Step 3.
+- Keep timeout/retry reasonable for local inference (for example timeout 30, retry 1~2).
+
+### Step 7 — Preflight API test (before launching app)
+Run an OpenAI-compatible chat completion directly against Ollama:
+
+```bash
+curl http://127.0.0.1:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ollama" \
+  -d '{
+    "model": "gpt-4o",
+    "messages": [{"role":"user","content":"Say hello from Gemma via Ollama."}],
+    "temperature": 0.7
+  }'
+```
+
+If you get JSON with `choices`, the endpoint mapping is correct.
+
+### Step 8 — Launch app from the same environment
+Important: launch the app in the same terminal/session where `OPENAI_BASE_URL` is set.
+
+Then send a user text input in the app and confirm:
+- response is generated
+- output speed/latency is acceptable
+- no fallback errors in console
+
+### Step 9 — Tuning for Gemma local inference
+Recommended practical tuning:
+- `LLM_GPT.temperature`: `0.6 ~ 0.9`
+- `LLM_GPT.max_output_tokens`: start at `256` or `512`
+- `LLM_GPT.timeout`: increase to `30~60` if hardware is slower
+- `LLM_GPT.retry`: `1~2` for local inference
+
+If responses are cut too early:
+- increase `max_output_tokens`
+
+If responses are too slow:
+- reduce `max_output_tokens`
+- use a smaller Gemma variant
+
+### Step 10 — Common failure cases and fixes
+
+1. **Error: model not found (`gpt-4o`)**
+   - Fix:
+     ```bash
+     ollama cp gemma4:latest gpt-4o
+     ollama list
+     ```
+
+2. **App still calling cloud OpenAI instead of local**
+   - Ensure `OPENAI_BASE_URL` is exported in the launch shell
+   - Restart terminal/app after setting env var
+
+3. **Connection refused to `127.0.0.1:11434`**
+   - Start service:
+     ```bash
+     ollama serve
+     ```
+   - Confirm port is reachable
+
+4. **Blank response in app**
+   - Increase timeout
+   - Reduce prompt length / max tokens
+   - Verify curl test in Step 7 works first
+
+5. **High latency**
+   - Use smaller model size
+   - Lower output token budget
+   - Ensure no other heavy workloads are consuming CPU/GPU
+
+### Step 11 — Minimal rollback path
+If you want to switch back quickly:
+1. In GUI/config set `[LLM] using = Gemini` (or normal GPT cloud path)
+2. Remove/ignore `OPENAI_BASE_URL` in your launch environment
+3. Restart app
+
+---
+
 ## 3) TTS setup and external TTS options
 
 ### English
@@ -289,4 +470,3 @@ For stable first run:
 1. `LLM = GPT` + Ollama alias（`gpt-4o` -> 本地 Gemma）
 2. `TTS = EdgeTTS`
 3. OBS 負責推流，本程式集中做 chat 回應、字幕同 VTuber 動作
-
