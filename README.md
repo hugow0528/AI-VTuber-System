@@ -14,6 +14,9 @@ https://www.youtube.com/watch?v=Hwss_p2Iroc
 ## User Manual
 https://docs.google.com/document/d/1na16cbaTVYin16BhvMQmeYYAZPwSyCoQ9sfcie3K-FQ/edit?usp=sharing
 
+## Ollama + TTS + YouTube Guide (English + Cantonese)
+./OLLAMA_TTS_YOUTUBE_GUIDE_EN_YUE.md
+
 ## How to Obtain an API Key in Google AI Studio
 https://drive.google.com/file/d/1WAwvtkWUyqnOu4QH-ZhlbuyONbQE4Ul1/view?usp=sharing
 
