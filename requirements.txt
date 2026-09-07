@@ -147,7 +147,7 @@ torchvision==0.17.2+cu121
 tornado==6.4
 tqdm==4.66.2
 traitlets==5.14.1
-transformers==4.38.2
+transformers==5.10.1
 twitchio==2.9.1
 typing_extensions==4.15.0
 tzdata==2024.1
